@@ -1,0 +1,15 @@
+{
+    "IdentityPolicy": {
+        "AllowedAdmins": [
+            "Administrator",
+            "AzureAD\\DinBruker",
+            "SystemAdmin"
+        ],
+        "MaxInactiveDays": 90,
+        "RequireMFAStatusCheck": true
+    },
+    "NetworkPolicy": {
+        "FirewallRequired": true,
+        "BlockGuestAccess": true
+    }
+}
