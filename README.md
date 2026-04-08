@@ -1,69 +1,50 @@
 # Shield-Audit
 
-Status: Planleggingsfase
+**Automated Security Compliance & Hardening Tool**
 
-Shield-Audit er planlagt som et verktøy for å kontrollere sikkerhetsstatus og etterlevelse på Windows-servere. Målet er å gjøre revisjon enklere, mer konsistent og lettere å følge opp over tid.
+Shield-Audit er et rammeverk utviklet for å automatisere revisjon og herding (hardening) av Windows-servere. Verktøyet går utover enkel monitorering ved å sammenligne systemets sanntidstilstand mot en definert "Gull-standard" (Policy-as-Code) og aktivt utbedre sikkerhetsavvik.
 
-## Formål
+## 1. Funksjonalitet
 
-Prosjektet skal gjøre det mulig å:
+Prosjektet har nådd MVP-status og inkluderer følgende kjernefunksjonalitet:
 
-- sammenligne en server mot en definert sikkerhetspolicy
-- finne avvik i konfigurasjon, tilgang og oppdateringsstatus
-- generere en rapport som kan brukes videre i drift, revisjon og dokumentasjon
+- **Identity & Privilege Audit:** Validerer administrative rettigheter mot hvitliste og identifiserer inaktive brukerkontoer (stale accounts).
+- **Network Hardening:** Verifiserer status for Windows Firewall-profiler og kontrollerer at usikre funksjoner som gjestekontoer er deaktivert.
+- **Auto-Remediation:** Inkluderer en beslutningsmotor som automatisk kan lukke sikkerhetshull (for eksempel reaktivere brannmur) dersom policyen tillater det.
+- **Security Scoring:** Beregner en total Security Score (0-100) basert på vektede funn, som gir en umiddelbar indikasjon på systemets compliance-status.
+- **Structured Reporting:** Genererer detaljerte rapporter i JSON-format for integrasjon i SIEM-systemer eller dashboards.
 
-## Problem som skal løses
+## 2. Arkitektur
 
-Manuelle sikkerhetssjekker tar tid, er lette å gjøre ulikt fra gang til gang og gir dårlig sporbarhet. Prosjektet er ment å redusere dette ved å samle kontroller i ett verktøy.
+Systemet er bygget modulært for å sikre enkel utvidelse:
 
-Eksempler på spørsmål verktøyet skal kunne svare på:
+- `config/Policy.json`: Den sentrale kilden til sannhet som definerer tillatte administratorer og sikkerhetsinnstillinger.
+- `src/ShieldAudit.ps1`: Hovedmotoren som benytter godkjente PowerShell-verb (Test-, Invoke-) for revisjon og utbedring.
+- `reports/`: Database for revisjonshistorikk og compliance-dokumentasjon.
 
-- Hvem har administrative rettigheter nå?
-- Har serveren avvik fra forventede brannmurregler?
-- Mangler systemet viktige oppdateringer?
-- Finnes det gamle eller inaktive kontoer med tilgang?
+## 3. Tekniske valg
 
-## Foreløpig scope
+- **PowerShell Core:** Brukes for dyp systemintegrasjon og effektiv informasjonsinnhenting.
+- **Policy-Driven Design:** Skiller konfigurasjon fra logikk, som gjør verktøyet skalerbart på tvers av ulike serverroller.
+- **Desired State Logic:** Implementerer prinsipper fra moderne infrastrukturstyring der skriptet tvinger systemet tilbake til sikker tilstand.
 
-Første versjon er tenkt å dekke:
+## 4. Veien videre (Roadmap)
 
-- identitet og gruppemedlemskap
-- administrative rettigheter
-- brannmur og nettverksrelaterte innstillinger
-- patch- og oppdateringsstatus
-- enkel scoring eller oppsummering av funn
+Prosjektet er i kontinuerlig utvikling, og følgende moduler er planlagt for neste fase:
 
-## Foreløpig arkitektur
+- **Patch Management Module:** Integrasjon mot Windows Update for å verifisere at kritiske sikkerhetsoppdateringer er installert.
+- **Audit-Log Analysis:** Skanning av systemlogger for å detektere brute force-forsøk eller uvanlig påloggingsaktivitet.
+- **HTML Dashboard:** En visuell fremstilling av `reports/FullAuditReport.json` for enklere presentasjon for ledelsen.
+- **Integrert overvåking:** Koble Shield-Audit sammen med PLM Guardian og NetPulse Observer for en komplett Admin Suite.
 
-Prosjektet er planlagt med disse hoveddelene:
+## 5. Bruk
 
-- Policy-fil: beskriver ønsket tilstand og godkjente unntak
-- Innsamling: henter relevant systeminformasjon fra Windows
-- Analyse: sammenligner innsamlede data med policy
-- Rapportering: skriver resultat til et strukturert format, for eksempel JSON
+1. Definer sikkerhetskrav i `config/Policy.json`.
+2. Kjør revisjon med:
 
-## Teknologivalg så langt
+```powershell
+.\src\ShieldAudit.ps1
+```
 
-- PowerShell for innsamling og systemkontroller
-- JSON for policy og rapportdata
+3. Analyser resultatene i `reports/FullAuditReport.json`.
 
-## Neste steg
-
-- definere første policy-format
-- avgrense hvilke kontroller som skal inn i MVP
-- lage enkel mappe- og prosjektstruktur
-- implementere første innsamlingsskript
-- lage første rapportformat
-
-## MVP-idé
-
-En første brukbar versjon kan være et script som:
-
-1. leser en enkel policy fra JSON
-2. henter lokal sikkerhetsinformasjon fra en Windows-server
-3. sammenligner funn mot policy
-4. skriver en kort rapport med avvik
-
-## Mål
-
-Målet i denne fasen er å planlegge et lite, tydelig og utvidbart verktøy før implementasjon starter.
