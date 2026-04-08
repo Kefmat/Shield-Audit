@@ -5,11 +5,11 @@
             "AzureAD\\DinBruker",
             "SystemAdmin"
         ],
-        "MaxInactiveDays": 90,
-        "RequireMFAStatusCheck": true
+        "MaxInactiveDays": 90
     },
     "NetworkPolicy": {
         "FirewallRequired": true,
-        "BlockGuestAccess": true
+        "BlockGuestAccess": true,
+        "AutoRemediate": false
     }
 }
