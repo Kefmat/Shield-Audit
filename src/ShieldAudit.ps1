@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
-    Shield-Audit - Security Compliance & Auto-Remediation.
+    Shield-Audit v1.4 - Comprehensive Security & System Compliance.
 .DESCRIPTION
     Reviderer Windows-servere og kan automatisk utbedre sikkerhetsavvik 
-    basert på definert policy (Auto-Remediation).
+    basert på definert policy (Auto-Remediation). Inkluderer nå kontroll
+    av systemhelse og oppdateringsstatus (Patch Management).
 .NOTES
-    Oppdatert med godkjente verb (Test-) og rettet feil i parameterliste.
+    Oppdatert med godkjente verb (Test-) og utvidet systemanalyse.
 #>
 
 $ConfigPath = "$PSScriptRoot\..\config\Policy.json"
@@ -50,6 +51,8 @@ function Invoke-Remediation {
 <#
 .SYNOPSIS
     Tester identiteter og administrative privilegier.
+.DESCRIPTION
+    Sammenligner lokale administratorer mot en hvitliste og finner inaktive kontoer.
 #>
 function Test-ShieldIdentity {
     $Findings = @()
@@ -88,6 +91,8 @@ function Test-ShieldIdentity {
 <#
 .SYNOPSIS
     Tester nettverksharding og utfører utbedring hvis aktivert.
+.DESCRIPTION
+    Verifiserer status på brannmurprofiler og sjekker om gjestekontoen er deaktivert.
 #>
 function Test-ShieldNetwork {
     $Findings = @()
@@ -121,12 +126,60 @@ function Test-ShieldNetwork {
     }
 }
 
+<#
+.SYNOPSIS
+    Tester systemhelse og patch-status.
+.DESCRIPTION
+    Sjekker ledig diskplass og verifiserer når systemet sist ble oppdatert.
+#>
+function Test-ShieldSystem {
+    $Findings = @()
+    $Score = 100
+    Write-Host "[3] Analyserer System & Patch Compliance..." -ForegroundColor Cyan
+
+    # A. Sjekk Diskplass (Kritisk for patching og stabilitet)
+    $Drive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
+    $FreeGB = [Math]::Round($Drive.FreeSpace / 1GB, 2)
+    if ($FreeGB -lt $Policy.SystemPolicy.MinFreeDiskGB) {
+        $Findings += "STORAGE: Lav diskplass ($FreeGB GB). Kravet er $($Policy.SystemPolicy.MinFreeDiskGB) GB."
+        $Score -= 20
+    }
+
+    # B. Sjekk Windows Update historikk via COM API
+    try {
+        $UpdateSession = New-Object -ComObject Microsoft.Update.Session
+        $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+        $HistoryCount = $UpdateSearcher.GetTotalHistoryCount()
+        
+        if ($HistoryCount -eq 0) {
+            $Findings += "PATCH: Ingen oppdateringshistorikk funnet på systemet."
+            $Score -= 30
+        } else {
+            $LastUpdate = $UpdateSearcher.QueryHistory(0, 1) | Select-Object -ExpandProperty Date
+            $DaysSince = ((Get-Date) - $LastUpdate).Days
+            if ($DaysSince -gt $Policy.SystemPolicy.MaxDaysSinceLastUpdate) {
+                $Findings += "PATCH: Systemet har ikke blitt oppdatert på $DaysSince dager."
+                $Score -= 25
+            }
+        }
+    } catch {
+        $Findings += "ERROR: Kunne ikke koble til Windows Update API for verifisering."
+    }
+
+    return [PSCustomObject]@{ 
+        Module = "System" 
+        Score = [Math]::Max(0, $Score) 
+        Findings = $Findings 
+    }
+}
+
 # --- Hovedløp ---
 
-# Kjører moduler og beregner totalscore
-$ModuleResults = @((Test-ShieldIdentity), (Test-ShieldNetwork))
+# Kjører moduler og beregner totalscore (Bruker semikolon for konsistens)
+$ModuleResults = @(Test-ShieldIdentity; Test-ShieldNetwork; Test-ShieldSystem)
 $TotalScore = [Math]::Round(($ModuleResults.Score | Measure-Object -Average).Average, 0)
 
+# Terminal-output for umiddelbar oversikt
 Write-Host "-------------------------------------------"
 Write-Host "SHIELD-AUDIT FULLFØRT: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" -ForegroundColor White
 Write-Host "TOTAL SECURITY SCORE: $TotalScore / 100" -ForegroundColor (if($TotalScore -ge 80){"Green"}else{"Red"})
@@ -140,7 +193,7 @@ $FullReport = [PSCustomObject]@{
 }
 $FullReport | ConvertTo-Json -Depth 4 | Out-File "$ReportDir\FullAuditReport.json" -Encoding utf8
 
-# Oppsummering av funn og status (Rettet feil i filtreringslogikk)
+# Oppsummering av funn og status
 $FlattenedFindings = $ModuleResults.Findings | Where-Object { $null -ne $_ }
 
 if ($FlattenedFindings.Count -gt 0) {

@@ -11,5 +11,10 @@
         "FirewallRequired": true,
         "BlockGuestAccess": true,
         "AutoRemediate": false
+    },
+    "SystemPolicy": {
+        "MinFreeDiskGB": 10,
+        "RequireWindowsUpdate": true,
+        "MaxDaysSinceLastUpdate": 30
     }
 }
