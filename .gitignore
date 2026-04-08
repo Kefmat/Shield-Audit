@@ -1,0 +1,10 @@
+# Ikke push rapportene dine til GitHub (de inneholder info om din spesifikke PC)
+reports/*
+!reports/.gitkeep
+
+# Ikke push lokale VS Code-innstillinger
+.vscode/
+
+# PowerShell-spesifikke filer vi ikke trenger i skyen
+*.log
+*.xml
